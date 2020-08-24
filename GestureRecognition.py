@@ -5,5 +5,5 @@ import DensityController as DC
 model= tf.keras.models.load_model('GestureRecognitionModel.h5')
 model.summary()
 
-print('Gesture Recognition Start')
+print('Test Start')
 DC.DataIO.GetTest(model)
