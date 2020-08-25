@@ -28,8 +28,8 @@ def CheckResalt():
        else:
            print('End' ,i)
            break
-
-(trainX,trainY),(testX,testY)=DC.DataIO.DataRead('CombinedData1000',3,300,True)
+        
+(trainX,trainY),(testX,testY)=DC.DataIO.DataRead('CombinedData1101',3,300,True)
 
 trainX=np.array(trainX)
 trainY=np.array(trainY)
@@ -53,9 +53,9 @@ model.compile(optimizer= tf.keras.optimizers.Adam(),
               metrics=['accuracy'])
 model.summary()
 
-history = model.fit((trainX),(trainY),epochs=20,validation_split=0.10)
+history = model.fit((trainX),(trainY),epochs=50,validation_split=0.10)
 
-model.save('GestureRecognitionModel.h5')
+model.save('GestureRecognitionModel2.h5')
 
 TrainGraph()
 
@@ -64,4 +64,4 @@ resalt=model.evaluate((testX),(testY),verbose=1)
 
 print('loss :', resalt[0], 'correntness:',resalt[1]*100,"%")
 
-#DC.DataIO.GetTest()
+DC.DataIO.GetTest(model)
