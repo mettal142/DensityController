@@ -29,7 +29,7 @@ def CheckResalt():
            print('End' ,i)
            break
         
-(trainX,trainY),(testX,testY)=DC.DataIO.DataRead('CombinedData1101',3,300,True)
+(trainX,trainY),(testX,testY)=DC.DataIO.DataRead('CombinedData2100_200828',3,300,True)
 
 trainX=np.array(trainX)
 trainY=np.array(trainY)
@@ -44,6 +44,7 @@ CheckPoint_Callback=tf.keras.callbacks.ModelCheckpoint(filepath=ChechPoint_FileN
 model = tf.keras.Sequential([tf.keras.layers.Conv2D(input_shape=(3,300,1),kernel_size=(1,3),filters=16,padding='same',activation='relu'),
                              tf.keras.layers.Conv2D(kernel_size=(1,3),padding='same',filters=32,activation='relu'),
                              tf.keras.layers.Conv2D(kernel_size=(1,3),padding='valid',filters=64,activation='relu'),
+                             tf.keras.layers.Dropout(rate=0.8),
                              tf.keras.layers.Flatten(),
                              tf.keras.layers.Dense(units=128, activation='relu'),
                              tf.keras.layers.Dense(units=11, activation = 'softmax')
@@ -53,11 +54,11 @@ model.compile(optimizer= tf.keras.optimizers.Adam(),
               metrics=['accuracy'])
 model.summary()
 
-history = model.fit((trainX),(trainY),epochs=50,validation_split=0.10)
+history = model.fit((trainX),(trainY),epochs=30,validation_split=0.10)
 
-model.save('GestureRecognitionModel2.h5')
+model.save('GestureRecognitionModel200828_4.h5')
 
-TrainGraph()
+#TrainGraph()
 
 resalt=model.evaluate((testX),(testY),verbose=1)
 

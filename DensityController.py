@@ -8,8 +8,8 @@ import math
 import matplotlib.pyplot as plt
 from dataglove import *
 
-Mode = 2 #0:TrainData, 1:ReadData, 2:CombineData, 3:DummyData 
-MotionIndex = 0 # 0 : dummy
+Mode = 1 #0:TrainData, 1:ReadData, 2:CombineData, 3:DummyData 
+MotionIndex = 0# 0 : dummy
 hyper = 1200
 choice = 35
 Routine=100
@@ -50,7 +50,7 @@ class GloveControl:
         Middle = FlexSensors[4] + FlexSensors[5]
         Ring = FlexSensors[6] + FlexSensors[7]
         Pinky = FlexSensors[8] + FlexSensors[9]
-        if Thumb >= 100 and Index <= 100 and Middle >= 120 and Ring >= 100 and Pinky >= 120:
+        if Thumb >= 100 and Index <= 120 and Middle >= 100 and Ring >= 100 and Pinky >= 100:
 
             GloveControl.HapticOn(126,0.7)
             return 1
@@ -112,7 +112,7 @@ class DataProcess:
     def delzero(data,f=0.1):
         temp = []
         for i in range(len(data)):
-            if abs(data[i]) >= 0.1:
+            if abs(data[i]) >= f:
                 temp.append(data[i])
         return temp
 
@@ -164,7 +164,6 @@ class DataIO:
         test_Y=[]
         for i in range(len(DD)):
             if Trigger:
-            
                 DD[i]=np.array(DD[i]).reshape(x,y,1)
 
             if i <= len(DD)*0.80:
@@ -194,12 +193,30 @@ class DataIO:
         except(KeyboardInterrupt):
             Forte_DestroyDataGloveIO(glove)
             exit    
+    def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+        """
+        Call in a loop to create terminal progress bar
+        @params:
+            iteration   - Required  : current iteration (Int)
+            total       - Required  : total iterations (Int)
+            prefix      - Optional  : prefix string (Str)
+            suffix      - Optional  : suffix string (Str)
+            decimals    - Optional  : positive number of decimals in percent complete (Int)
+            length      - Optional  : character length of bar (Int)
+            fill        - Optional  : bar fill character (Str)
+            printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+        """
+        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+        filledLength = int(length * iteration // total)
+        bar = fill * filledLength + '-' * (length - filledLength)
+        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+        # Print New Line on Complete
+        if iteration == total: 
+            print()
 
 def GenerateData(Mode,MotionIndex):
 
     FileName='Motion'+str(MotionIndex)+'.npy'
-    Lable = tf.one_hot([0,1,2,3,4,5,6,7,8,9,10],depth=11)
-
 
     save = []
     data = [[[],[],[]],[]]
@@ -212,15 +229,19 @@ def GenerateData(Mode,MotionIndex):
     Iterator = 0
     preTrigger = 0
     AmountOfChange = [0,0,0]
-
+    save.extend(np.array(np.load(FilePath+FileName,allow_pickle=True)))
     print("start")
     try:
         if Mode == 0:
             try:
                 while True:
+                    print(Forte_GetSensorsRaw(glove)[0]+Forte_GetSensorsRaw(glove)[1],Forte_GetSensorsRaw(glove)[2]+Forte_GetSensorsRaw(glove)[3],
+                          Forte_GetSensorsRaw(glove)[4]+Forte_GetSensorsRaw(glove)[5],Forte_GetSensorsRaw(glove)[6]+Forte_GetSensorsRaw(glove)[7],
+                          Forte_GetSensorsRaw(glove)[8]+Forte_GetSensorsRaw(glove)[9],end='\r',flush=True)
+
                     try:
                         if preTrigger == 0 and GloveControl.PoseTrigger(glove,Forte_GetSensorsRaw(glove)) == 1: #CaptureStart
-                            print('Capture Start')
+                            print('Capture Start\n',flush=True)
                             BeforeData = Forte_GetEulerAngles(glove)
                             AmountOfChange = [0,0,0]
                             startTime = time.time()
@@ -237,15 +258,16 @@ def GenerateData(Mode,MotionIndex):
                             if len(DataProcess.delzero(InclinationData[0][1]))<20 or len(DataProcess.delzero(InclinationData[0][2]))<20 or len(DataProcess.delzero(InclinationData[0][0]))<20:
                                 InclinationData = [[[],[],[]],[]]
                                 preTrigger = 0
-                                print('re')
+                                print('re\n',flush=True)
                                 continue
 
                             deltaTime = time.time() - startTime
                             InclinationData[1]=MotionIndex
+                            print()
                             C= input('save?')
                             if C=='':
                                 save.append(InclinationData)
-                                print('saved',Iterator)
+                                print('saved'+str(len(save)),flush=True)
                                 Iterator+=1                    
                             InclinationData = [[[],[],[]],[]]
                             preTrigger = 0
@@ -262,22 +284,22 @@ def GenerateData(Mode,MotionIndex):
                 Forte_DestroyDataGloveIO(glove)
                 exit() #TrainData
 
-        elif Mode == 1:
+        elif Mode == 1: 
             print("Read Data Mode")
             Motion =(np.load(FilePath+FileName,allow_pickle=True))
 
-            print(len(Motion[0][0]))
-            print('Motion'+str(0)+' loaded')
-            print(Motion[0][1])
+            print('Motion'+str(MotionIndex)+' loaded')
             for i in range(len(Motion)):
                 plt.figure(figsize=(12,8))           
-                DataIO.ShowGraph(DataProcess.delover(DataProcess.delzero(Motion[i][0][0])),231)
-                DataIO.ShowGraph(DataProcess.delover(DataProcess.delzero(Motion[i][0][1])),232)
-                DataIO.ShowGraph(DataProcess.delover(DataProcess.delzero(Motion[i][0][2])),233)
-                DataIO.ShowGraph((DataProcess.Integration((DataProcess.delzero(Motion[i][0][0])))),234)
-                DataIO.ShowGraph((DataProcess.Integration((DataProcess.delzero(Motion[i][0][1])))),235)
-                DataIO.ShowGraph((DataProcess.Integration((DataProcess.delzero(Motion[i][0][2])))),236)
-                print(Motion[i][1])
+                DataIO.ShowGraph(((Motion[i][0][0])),231)
+                DataIO.ShowGraph(((Motion[i][0][1])),232)
+                DataIO.ShowGraph(((Motion[i][0][2])),233)             
+                #DataIO.ShowGraph((DataProcess.delzero(Motion[i][0][0])),231)
+                #DataIO.ShowGraph((DataProcess.delzero(Motion[i][0][1])),232)
+                #DataIO.ShowGraph((DataProcess.delzero(Motion[i][0][2])),233)
+                #DataIO.ShowGraph((DataProcess.Integration((DataProcess.delzero(Motion[i][0][0])))),234)
+                #DataIO.ShowGraph((DataProcess.Integration((DataProcess.delzero(Motion[i][0][1])))),235)
+                #DataIO.ShowGraph((DataProcess.Integration((DataProcess.delzero(Motion[i][0][2])))),236)
                 plt.show() #DataRead
       
         elif Mode == 2:
@@ -290,67 +312,69 @@ def GenerateData(Mode,MotionIndex):
                 print('Motion'+str(i)+' added')
         
             for i in range(len(savetemp)):
-                #if i==0:
-                #    savetemp[i][0][0]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(((savetemp[i][0][0]))),1,300))
-                #    savetemp[i][0][1]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(((savetemp[i][0][1]))),1,300))
-                #    savetemp[i][0][2]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(((savetemp[i][0][2]))),1,300))
-                savetemp[i][0][0]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration((DataProcess.delzero(savetemp[i][0][0]))),1,300))
-                savetemp[i][0][1]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration((DataProcess.delzero(savetemp[i][0][1]))),1,300))
-                savetemp[i][0][2]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration((DataProcess.delzero(savetemp[i][0][2]))),1,300))
+                if savetemp[i][1]==0:
+                    savetemp[i][0][0]=DataProcess.Nomalize(DataProcess.HyperSampling(savetemp[i][0][0],1,300))
+                    savetemp[i][0][1]=DataProcess.Nomalize(DataProcess.HyperSampling(savetemp[i][0][1],1,300))
+                    savetemp[i][0][2]=DataProcess.Nomalize(DataProcess.HyperSampling(savetemp[i][0][2],1,300))
+                else:
+                    savetemp[i][0][0]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][0])),1,300))
+                    savetemp[i][0][1]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][1])),1,300))
+                    savetemp[i][0][2]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][2])),1,300))
    
-            np.save('CombinedData'+str(len(savetemp)),savetemp,True)
+            np.save('CombinedData'+str(len(savetemp))+'_200828',savetemp,True)
             print("CombinedData","Operation Complete") #CombineData
 
-        elif Mode==3:#DummyData
+        elif Mode==3:
             t=time.time()
             tt=[[[],[],[]],0]
             savetemp=[]
             BeforeData = 0
-            DummyTime=300
-
+            DummyTime=30
+            StartTime=time.time()
             InclinationData=[[[],[],[]],0]
             print('Generate Dummy Data')
+            input()
             try:
                 while True:
                     try:
-                            DeltaIMU = np.array(Forte_GetEulerAngles(glove)) - np.array(BeforeData)
+                        DeltaIMU = np.array(Forte_GetEulerAngles(glove)) - np.array(BeforeData)
 
-                            BeforeData = Forte_GetEulerAngles(glove)
+                        BeforeData = Forte_GetEulerAngles(glove)
 
-                            InclinationData[0][0].append(DeltaIMU[0])
-                            InclinationData[0][1].append(DeltaIMU[1])
-                            InclinationData[0][2].append(DeltaIMU[2])                  
-                        
-                   
-                            if time.time()-t>=DummyTime:
-                                InclinationData[0][0]=DataProcess.Integration(DataProcess.delover(DataProcess.delzero(InclinationData[0][0])))
-                                InclinationData[0][1]=DataProcess.Integration(DataProcess.delover(DataProcess.delzero(InclinationData[0][1])))
-                                InclinationData[0][2]=DataProcess.Integration(DataProcess.delover(DataProcess.delzero(InclinationData[0][2])))
-                                for i in range(int(min([len(InclinationData[0][0]),len(InclinationData[0][1]),len(InclinationData[0][2])])/60)):
-                                    for j in range(60):
-                                        tt[0][0].append(InclinationData[0][0][i*60+j])
-                                        tt[0][1].append(InclinationData[0][1][i*60+j])
-                                        tt[0][2].append(InclinationData[0][2][i*60+j])
-                                    savetemp.append(tt)
-                                    tt=[[[],[],[]],0]
-                                np.save(FilePath+"Motion0.npy",savetemp,True)
-                                print("SaveComplete"+str(len(savetemp)))
+                        InclinationData[0][0].append(DeltaIMU[0])
+                        InclinationData[0][1].append(DeltaIMU[1])
+                        InclinationData[0][2].append(DeltaIMU[2])                  
+                        print(str(int(DummyTime-(time.time()-StartTime))),len(DataProcess.Integration((DataProcess.delzero(InclinationData[0][0],f=0.01))))/300,end='\r',flush=True)
+                        if time.time()-t>=DummyTime:
+                            InclinationData[0][0]=DataProcess.Integration((DataProcess.delzero(InclinationData[0][0],f=0.01)))
+                            InclinationData[0][1]=DataProcess.Integration((DataProcess.delzero(InclinationData[0][1],f=0.01)))
+                            InclinationData[0][2]=DataProcess.Integration((DataProcess.delzero(InclinationData[0][2],f=0.01)))
+                            for i in range(int(min([len(InclinationData[0][0]),len(InclinationData[0][1]),len(InclinationData[0][2])])/300)):
+                                for j in range(300):
+                                    tt[0][0].append(InclinationData[0][0][i*300+j])
+                                    tt[0][1].append(InclinationData[0][1][i*300+j])
+                                    tt[0][2].append(InclinationData[0][2][i*300+j])
+                                savetemp.append(tt)
+                                tt=[[[],[],[]],0]
+                            np.save(FilePath+"Motion0_200828.npy",savetemp,True)
+                            print("SaveComplete"+str(len(savetemp)))
 
-                                for i in range(len(savetemp)):
-                                    plt.figure(figsize=(12,4))
-                                    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][0])),131)
-                                    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][1])),132)
-                                    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][2])),133)
-                                    plt.show()
-                                break
-                            BeforeData = Forte_GetEulerAngles(glove)
+                            #for i in range(len(savetemp)):
+                            #    plt.figure(figsize=(12,4))
+                            #    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][0],f=0.01)),131)
+                            #    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][1],f=0.01)),132)
+                            #    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][2],f=0.01)),133)
+                            #    plt.show()
+                            break
+                        BeforeData = Forte_GetEulerAngles(glove)
 
                     except(GloveDisconnectedException):
                         print("Glove is Disconnected")
                         pass
             except(KeyboardInterrupt):
                 Forte_DestroyDataGloveIO(glove)
-                exit()
+                exit() #DummyData
+
     except(KeyboardInterrupt):
         Forte_DestroyDataGloveIO(glove)
         exit()
@@ -361,9 +385,12 @@ def GetTestData():
     preTrigger = 0
     try:
         while True:
+            print(Forte_GetSensorsRaw(glove)[0]+Forte_GetSensorsRaw(glove)[1],Forte_GetSensorsRaw(glove)[2]+Forte_GetSensorsRaw(glove)[3],
+            Forte_GetSensorsRaw(glove)[4]+Forte_GetSensorsRaw(glove)[5],Forte_GetSensorsRaw(glove)[6]+Forte_GetSensorsRaw(glove)[7],
+            Forte_GetSensorsRaw(glove)[8]+Forte_GetSensorsRaw(glove)[9],end='\r',flush=True)
             try:
                 if preTrigger == 0 and GloveControl.PoseTrigger(glove,Forte_GetSensorsRaw(glove)) == 1: #CaptureStart
-                    print('Capture Start')
+                    print('Capture Start\r',flush=True)
                     BeforeData = Forte_GetEulerAngles(glove)
                     preTrigger = 1
 
@@ -386,7 +413,7 @@ def GetTestData():
                     if len(InclinationData[1])<20 or len(InclinationData[2])<20 or len(InclinationData[0])<20:
                         InclinationData = [[],[],[]]
                         preTrigger = 0
-                        print('re')
+                        print('re\r',flush=True)
                         continue
                     InclinationData[0]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(InclinationData[0]),1,300))
                     InclinationData[1]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(InclinationData[1]),1,300))
@@ -394,7 +421,6 @@ def GetTestData():
                     C= input('save?')
                     if C=='':
                         return InclinationData
-                        print('end')
                     InclinationData = [[],[],[]]
                     preTrigger = 0
 
@@ -408,3 +434,5 @@ def GetTestData():
 
 
 #GenerateData(Mode,MotionIndex)
+#a=np.load(FilePath+'Motion0_200828.npy',allow_pickle=True)
+#print(len(a))
