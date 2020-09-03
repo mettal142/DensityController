@@ -8,7 +8,7 @@ import math
 import matplotlib.pyplot as plt
 from dataglove import *
 
-Mode = 1 #0:TrainData, 1:ReadData, 2:CombineData, 3:DummyData 
+Mode = 3 #0:TrainData, 1:ReadData, 2:CombineData, 3:DummyData 
 MotionIndex = 0# 0 : dummy
 hyper = 1200
 choice = 35
@@ -58,6 +58,7 @@ class GloveControl:
             GloveControl.HapticOff()
             #HapticShot(Hand,1,1)
             return 0
+    #Forte_GetSensorsRaw(glove) It is a method to get sensors data(0~127 each sensor, 0~254 each finger)
 
 class DataProcess:
     
@@ -325,15 +326,15 @@ def GenerateData(Mode,MotionIndex):
             print("CombinedData","Operation Complete") #CombineData
 
         elif Mode==3:
+            input()
             t=time.time()
             tt=[[[],[],[]],0]
             savetemp=[]
             BeforeData = 0
-            DummyTime=30
+            DummyTime=600
             StartTime=time.time()
             InclinationData=[[[],[],[]],0]
             print('Generate Dummy Data')
-            input()
             try:
                 while True:
                     try:
@@ -343,33 +344,40 @@ def GenerateData(Mode,MotionIndex):
 
                         InclinationData[0][0].append(DeltaIMU[0])
                         InclinationData[0][1].append(DeltaIMU[1])
-                        InclinationData[0][2].append(DeltaIMU[2])                  
-                        print(str(int(DummyTime-(time.time()-StartTime))),len(DataProcess.Integration((DataProcess.delzero(InclinationData[0][0],f=0.01))))/300,end='\r',flush=True)
+                        InclinationData[0][2].append(DeltaIMU[2])           
+                        
+                        print(str(int(DummyTime-(time.time()-StartTime))),end='\r',flush=True)
                         if time.time()-t>=DummyTime:
-                            InclinationData[0][0]=DataProcess.Integration((DataProcess.delzero(InclinationData[0][0],f=0.01)))
-                            InclinationData[0][1]=DataProcess.Integration((DataProcess.delzero(InclinationData[0][1],f=0.01)))
-                            InclinationData[0][2]=DataProcess.Integration((DataProcess.delzero(InclinationData[0][2],f=0.01)))
-                            for i in range(int(min([len(InclinationData[0][0]),len(InclinationData[0][1]),len(InclinationData[0][2])])/300)):
-                                for j in range(300):
-                                    tt[0][0].append(InclinationData[0][0][i*300+j])
-                                    tt[0][1].append(InclinationData[0][1][i*300+j])
-                                    tt[0][2].append(InclinationData[0][2][i*300+j])
-                                savetemp.append(tt)
-                                tt=[[[],[],[]],0]
-                            np.save(FilePath+"Motion0_200828.npy",savetemp,True)
-                            print("SaveComplete"+str(len(savetemp)))
+                            InclinationData[0][0]=((DataProcess.delzero(InclinationData[0][0],f=0.01)))
+                            InclinationData[0][1]=((DataProcess.delzero(InclinationData[0][1],f=0.01)))
+                            InclinationData[0][2]=((DataProcess.delzero(InclinationData[0][2],f=0.01)))
 
-                            #for i in range(len(savetemp)):
-                            #    plt.figure(figsize=(12,4))
-                            #    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][0],f=0.01)),131)
-                            #    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][1],f=0.01)),132)
-                            #    DataIO.ShowGraph(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][2],f=0.01)),133)
-                            #    plt.show()
+                            np.save(FilePath+"Motion0_200901.npy",InclinationData,True)
+                            print("SaveComplete",str(len(InclinationData[0])),str(len(InclinationData[0])),str(len(InclinationData[0])))
+
+                            plt.figure(figsize=(12,4))
+                            DataIO.ShowGraph(DataProcess.Integration(InclinationData[0][0]),131)
+                            DataIO.ShowGraph(DataProcess.Integration(InclinationData[0][1]),132)
+                            DataIO.ShowGraph(DataProcess.Integration(InclinationData[0][2]),133)
+                            plt.show()
                             break
                         BeforeData = Forte_GetEulerAngles(glove)
 
                     except(GloveDisconnectedException):
                         print("Glove is Disconnected")
+                        if Mode ==3:
+                            InclinationData[0][0]=((DataProcess.delzero(InclinationData[0][0],f=0.01)))
+                            InclinationData[0][1]=((DataProcess.delzero(InclinationData[0][1],f=0.01)))
+                            InclinationData[0][2]=((DataProcess.delzero(InclinationData[0][2],f=0.01)))
+
+                            np.save(FilePath+"Motion0_200901.npy",InclinationData,True)
+                            print("SaveComplete",str(len(InclinationData[0])),str(len(InclinationData[0])),str(len(InclinationData[0])))
+
+                            plt.figure(figsize=(12,4))
+                            DataIO.ShowGraph(DataProcess.Integration(InclinationData[0][0]),131)
+                            DataIO.ShowGraph(DataProcess.Integration(InclinationData[0][1]),132)
+                            DataIO.ShowGraph(DataProcess.Integration(InclinationData[0][2]),133)
+                            plt.show()
                         pass
             except(KeyboardInterrupt):
                 Forte_DestroyDataGloveIO(glove)
@@ -385,7 +393,7 @@ def GetTestData():
     preTrigger = 0
     try:
         while True:
-            print(Forte_GetSensorsRaw(glove)[0]+Forte_GetSensorsRaw(glove)[1],Forte_GetSensorsRaw(glove)[2]+Forte_GetSensorsRaw(glove)[3],
+            print(((Forte_GetSensorsRaw(glove)[0]+Forte_GetSensorsRaw(glove)[1])),Forte_GetSensorsRaw(glove)[2]+Forte_GetSensorsRaw(glove)[3],
             Forte_GetSensorsRaw(glove)[4]+Forte_GetSensorsRaw(glove)[5],Forte_GetSensorsRaw(glove)[6]+Forte_GetSensorsRaw(glove)[7],
             Forte_GetSensorsRaw(glove)[8]+Forte_GetSensorsRaw(glove)[9],end='\r',flush=True)
             try:
@@ -431,7 +439,6 @@ def GetTestData():
     except(KeyboardInterrupt):
         Forte_DestroyDataGloveIO(glove)
         exit()
-
 
 #GenerateData(Mode,MotionIndex)
 #a=np.load(FilePath+'Motion0_200828.npy',allow_pickle=True)
