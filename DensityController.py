@@ -8,11 +8,11 @@ import math
 import matplotlib.pyplot as plt
 from dataglove import *
 
-Mode = 3 #0:TrainData, 1:ReadData, 2:CombineData, 3:DummyData 
-MotionIndex = 0# 0 : dummy
+Mode = 2 #0:TrainData, 1:ReadData, 2:CombineData, 3:DummyData 
+MotionIndex = 5 # 0 : dummy
 hyper = 1200
 choice = 35
-Routine=100
+Routine=200
 FileName=''
 FilePath='C:/Users/gun18/source/repos/Data_200824/'
 glove = Forte_CreateDataGloveIO(0)# right:0 left:1
@@ -190,10 +190,11 @@ class DataIO:
     def GetTest(model):
         try:
             while True:
-                print(np.argmax(model.predict(np.array(GetTestData()).reshape(1,3,300,1))))
+                resalt=model.predict(np.array(GetTestData()).reshape(1,3,300,1))
+                print(np.argmax(resalt),max(resalt))
         except(KeyboardInterrupt):
             Forte_DestroyDataGloveIO(glove)
-            exit    
+            exit()    
     def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
         """
         Call in a loop to create terminal progress bar
@@ -220,6 +221,7 @@ def GenerateData(Mode,MotionIndex):
     FileName='Motion'+str(MotionIndex)+'.npy'
 
     save = []
+
     data = [[[],[],[]],[]]
     InclinationData = [[[],[],[]],[]]
     hypersave = []
@@ -230,19 +232,18 @@ def GenerateData(Mode,MotionIndex):
     Iterator = 0
     preTrigger = 0
     AmountOfChange = [0,0,0]
-    save.extend(np.array(np.load(FilePath+FileName,allow_pickle=True)))
     print("start")
     try:
         if Mode == 0:
             try:
                 while True:
-                    print(Forte_GetSensorsRaw(glove)[0]+Forte_GetSensorsRaw(glove)[1],Forte_GetSensorsRaw(glove)[2]+Forte_GetSensorsRaw(glove)[3],
-                          Forte_GetSensorsRaw(glove)[4]+Forte_GetSensorsRaw(glove)[5],Forte_GetSensorsRaw(glove)[6]+Forte_GetSensorsRaw(glove)[7],
-                          Forte_GetSensorsRaw(glove)[8]+Forte_GetSensorsRaw(glove)[9],end='\r',flush=True)
+                    #print(Forte_GetSensorsRaw(glove)[0]+Forte_GetSensorsRaw(glove)[1],Forte_GetSensorsRaw(glove)[2]+Forte_GetSensorsRaw(glove)[3],
+                    #      Forte_GetSensorsRaw(glove)[4]+Forte_GetSensorsRaw(glove)[5],Forte_GetSensorsRaw(glove)[6]+Forte_GetSensorsRaw(glove)[7],
+                    #      Forte_GetSensorsRaw(glove)[8]+Forte_GetSensorsRaw(glove)[9],end='\r',flush=True)
 
                     try:
                         if preTrigger == 0 and GloveControl.PoseTrigger(glove,Forte_GetSensorsRaw(glove)) == 1: #CaptureStart
-                            print('Capture Start\n',flush=True)
+                            print('Capture Start\r',flush=True)
                             BeforeData = Forte_GetEulerAngles(glove)
                             AmountOfChange = [0,0,0]
                             startTime = time.time()
@@ -259,7 +260,7 @@ def GenerateData(Mode,MotionIndex):
                             if len(DataProcess.delzero(InclinationData[0][1]))<20 or len(DataProcess.delzero(InclinationData[0][2]))<20 or len(DataProcess.delzero(InclinationData[0][0]))<20:
                                 InclinationData = [[[],[],[]],[]]
                                 preTrigger = 0
-                                print('re\n',flush=True)
+                                print('re\r',flush=True)
                                 continue
 
                             deltaTime = time.time() - startTime
@@ -268,7 +269,7 @@ def GenerateData(Mode,MotionIndex):
                             C= input('save?')
                             if C=='':
                                 save.append(InclinationData)
-                                print('saved'+str(len(save)),flush=True)
+                                print('saved'+str(len(save))+'\r',flush=True)
                                 Iterator+=1                    
                             InclinationData = [[[],[],[]],[]]
                             preTrigger = 0
@@ -283,7 +284,7 @@ def GenerateData(Mode,MotionIndex):
 
             except(KeyboardInterrupt):
                 Forte_DestroyDataGloveIO(glove)
-                exit() #TrainData
+                #TrainData
 
         elif Mode == 1: 
             print("Read Data Mode")
@@ -322,7 +323,7 @@ def GenerateData(Mode,MotionIndex):
                     savetemp[i][0][1]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][1])),1,300))
                     savetemp[i][0][2]=DataProcess.Nomalize(DataProcess.HyperSampling(DataProcess.Integration(DataProcess.delzero(savetemp[i][0][2])),1,300))
    
-            np.save('CombinedData'+str(len(savetemp))+'_200828',savetemp,True)
+            np.save('CombinedData'+str(len(savetemp))+'_200909',savetemp,True)
             print("CombinedData","Operation Complete") #CombineData
 
         elif Mode==3:

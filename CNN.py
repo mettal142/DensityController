@@ -29,7 +29,7 @@ def CheckResalt():
            print('End' ,i)
            break
         
-(trainX,trainY),(testX,testY)=DC.DataIO.DataRead('CombinedData2100_200828',3,300,True)
+(trainX,trainY),(testX,testY)=DC.DataIO.DataRead('CombinedData2100_200909',3,300,True)
 
 trainX=np.array(trainX)
 trainY=np.array(trainY)
@@ -56,7 +56,7 @@ model.summary()
 
 history = model.fit((trainX),(trainY),epochs=30,validation_split=0.10)
 
-model.save('GestureRecognitionModel200828_4.h5')
+model.save('GestureRecognitionModel200909_02.h5')
 
 #TrainGraph()
 
